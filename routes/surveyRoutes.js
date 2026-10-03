@@ -1,0 +1,10 @@
+const express = require('express');
+const controller = require('../controllers/surveyController');
+const auth = require('../middleware/auth');
+const router = express.Router();
+router.use(auth);
+router.get('/', controller.listSurveys);
+router.get('/profile', controller.profile);
+router.get('/:id', controller.getSurvey);
+router.post('/:id/responses', controller.submitSurvey);
+module.exports = router;

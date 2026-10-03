@@ -1,0 +1,118 @@
+SURVEY APP - SETUP AND CODE GUIDE
+================================================
+
+WHAT THIS APP DOES
+------------------
+1. A visitor creates an account or signs in with an existing account.
+2. The server hashes passwords with bcryptjs and returns a signed JWT.
+3. The browser stores that JWT and sends it as a Bearer token on protected requests.
+4. The dashboard lists surveys and marks surveys already completed by that user.
+5. A user opens one survey, answers each question, and submits the response.
+6. The profile page loads the signed-in user's details and submission history.
+
+MYSQL
+-----
+The server creates the users, responses, MFA, login OTP, and surveys tables if they do not
+exist. Existing surveys receive the questions JSON column and owner column as needed. The
+server inserts two starter surveys only when the surveys table has none with questions.
+No manual MySQL edit is required.
+
+ALTER TABLE surveys ADD COLUMN questions JSON NULL AFTER description;
+
+Submissions are stored with their user ID and appear in that user's profile history.
+
+EMAIL OTP SIGN-IN
+-----------------
+Sign-in uses a six-digit code sent to the account email after the password is accepted.
+For Gmail delivery, enable 2-Step Verification on the sending Gmail account, create a
+Google App Password, and add these values to .env:
+
+GMAIL_USER=your-sending-account@gmail.com
+GMAIL_APP_PASSWORD=your-16-character-app-password
+
+The app creates the login_otps table automatically. Codes are hashed in the database,
+expire after 10 minutes, and are deleted after successful verification. Do not use the
+normal Gmail account password or commit the real .env file.
+
+Copy .env.example to .env for local development. Keep .env out of Git. For a hosted
+deployment, configure the same values in the host's environment settings and use a unique,
+long JWT_SECRET. Email OTP codes are only returned to the browser in development mode.
+
+SERVER FILES, LINE BY LINE
+--------------------------
+
+server.js
+1. Imports Express, mysql2, and dotenv.
+2. Creates the Express application and enables JSON request bodies.
+3. Creates a MySQL connection pool using the values in .env.
+4. Injects the pool into the authentication and survey controllers.
+5. Mounts authentication endpoints at /api/auth.
+6. Mounts protected survey endpoints at /api/surveys.
+7. Serves files from public so index.html is the browser entry point.
+8. Creates surveys if the table does not exist.
+9. Seeds two useful surveys only when there are no surveys.
+10. Tests the database connection and starts the HTTP server.
+
+controllers/authControllers.js
+1. Imports bcryptjs for password hashing and jsonwebtoken for sessions.
+2. setDatabase stores the shared MySQL pool.
+3. createToken signs a small user identity for seven days.
+4. publicUser removes the password before sending user data to the browser.
+5. loginUser validates input, finds the email, compares the password hash, and returns a token.
+6. registerUser validates input, normalizes email, rejects duplicates, hashes the password,
+   inserts the new user, and immediately returns a token for the new account.
+
+middleware/auth.js
+1. Reads the Authorization header.
+2. Requires the Bearer token format.
+3. Verifies the signature and expiry using JWT_SECRET.
+4. Places the decoded user on req.user for the next controller.
+5. Returns HTTP 401 when authentication is missing or invalid.
+
+controllers/surveyController.js
+1. Stores the database pool with setDatabase.
+2. Parses JSON columns whether mysql2 returns strings or already-parsed objects.
+3. listSurveys returns every survey and checks completion for the current user.
+4. getSurvey returns one survey and its questions.
+5. submitSurvey validates the survey ID and inserts the current user's answers.
+6. profile joins responses to surveys and returns the current user's history.
+
+routes/authRoutes.js
+1. POST /register creates a local account.
+2. POST /login signs in a local account.
+3. GET /google starts the configured Google sign-in flow.
+
+routes/surveyRoutes.js
+1. Applies the auth middleware to every survey route.
+2. Connects list, profile, detail, and response URLs to their controllers.
+
+public/index.html
+1. Contains the auth screen and the protected application shell.
+2. CSS defines the responsive Survey App visual system.
+3. JavaScript keeps the JWT in localStorage and adds it to API requests.
+4. The auth form switches between signup and login without a page reload.
+5. render loads the dashboard and creates survey cards.
+6. openSurvey builds the question form and posts answers.
+7. renderProfile loads account information and completed survey dates.
+8. Sign out removes the token and returns to the auth screen.
+
+GOOGLE SIGN-IN
+--------------
+Google sign-in requires a Google OAuth application, callback URL, client ID, and secret.
+Configure these values in .env:
+
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+Never commit the real .env file or provider secrets.
+
+AUTHENTICATOR SIGN-IN
+--------------------
+Users can enable an authenticator app from My profile. Once enabled, password and Google
+sign-ins require the current six-digit TOTP code. Accounts without an authenticator enabled
+continue to use email OTP for password sign-in.
+
+RUNNING
+-------
+Run `node server.js`, then open http://localhost:4000. Make sure MySQL is running and
+the survey_application database exists. Replace the sample JWT_SECRET with a long random
+value before using the app outside local development.

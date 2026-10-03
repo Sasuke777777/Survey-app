@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Survey App</title>
+    <style>
+        :root { --ink:#17332f; --muted:#71817b; --paper:#f7f4ed; --card:#fffdf8; --line:#dedfd6; --mint:#b9dfc9; --coral:#ef8368; --green:#286653; }
+        * { box-sizing:border-box; } body { margin:0; background:var(--paper); color:var(--ink); font:15px Arial, Helvetica, sans-serif; }
+        header { display:flex; align-items:center; justify-content:space-between; max-width:1160px; margin:auto; padding:26px 24px; }
+        .brand { font:700 21px Arial, Helvetica, sans-serif; letter-spacing:-.5px; } .brand span { color:var(--coral); }
+        button, input, textarea { font:inherit; } button { border:0; cursor:pointer; } .primary { background:var(--ink); color:white; border-radius:4px; padding:13px 18px; font-weight:700; } .primary:hover { background:var(--green); }
+        .ghost { background:transparent; color:var(--ink); padding:10px 0; font-weight:700; } .ghost:hover { color:var(--coral); }
+        .auth-shell { min-height:100vh; display:grid; place-items:center; padding:24px; background:linear-gradient(135deg,#e8f1e4 0%,var(--paper) 52%,#f8d8ca 140%); }
+        .auth-box { width:min(440px,100%); background:var(--card); padding:42px; border:1px solid var(--line); box-shadow:12px 12px 0 #d6e5d9; }
+        .eyebrow { color:var(--coral); text-transform:uppercase; letter-spacing:2px; font-size:11px; font-weight:700; } h1,h2,h3 { font-family:Arial, Helvetica, sans-serif; letter-spacing:-1px; } h1 { font-size:42px; line-height:1.05; margin:14px 0 12px; } h2 { font-size:30px; margin:5px 0 10px; }
+        .subtle { color:var(--muted); line-height:1.6; } .form { display:grid; gap:14px; margin-top:26px; } label { color:var(--muted); font-size:13px; font-weight:700; } input, textarea { display:block; width:100%; margin-top:6px; padding:13px; border:1px solid var(--line); border-radius:3px; background:#fff; color:var(--ink); } input:focus, textarea:focus { outline:2px solid var(--mint); border-color:var(--green); }
+        .switch { margin-top:25px; text-align:center; color:var(--muted); } .switch button { display:inline; color:var(--coral); font-weight:700; background:none; padding:0; } .message { min-height:20px; margin-top:12px; color:var(--coral); font-weight:700; }
+        .social-row { display:flex; gap:12px; flex-wrap:wrap; margin-top:14px; }
+        .provider-button { display:inline-flex; align-items:center; justify-content:center; padding:12px 14px; color:var(--ink); background:#fff; border:1px solid var(--line); border-radius:4px; text-decoration:none; font-weight:700; }
+        .provider-button:hover { border-color:var(--green); color:var(--green); }
+        .app { display:none; } .app.visible { display:block; } main { max-width:1160px; margin:auto; padding:38px 24px 80px; } .topbar { display:flex; align-items:end; justify-content:space-between; gap:20px; margin-bottom:38px; } .nav { display:flex; gap:22px; align-items:center; } .nav button { background:none; color:var(--muted); font-weight:700; padding:7px 0; border-bottom:2px solid transparent; } .nav button.active { color:var(--ink); border-color:var(--coral); }
+        .survey-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(270px,1fr)); gap:18px; } .survey-card { background:var(--card); border:1px solid var(--line); padding:25px; min-height:220px; display:flex; flex-direction:column; justify-content:space-between; } .survey-card h3 { font-size:23px; margin:12px 0 8px; } .tag { color:var(--green); font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1px; } .completed { color:var(--green); font-size:13px; font-weight:700; }
+        .panel { max-width:760px; background:var(--card); border:1px solid var(--line); padding:28px; } .question { border-top:1px solid var(--line); padding:22px 0 4px; } .question:first-child { border-top:0; } .question label { display:block; color:var(--ink); font-size:16px; } .history { border-top:1px solid var(--line); padding:18px 0; } .history strong { display:block; margin-bottom:5px; }
+        @media (max-width:600px) { .auth-box { padding:28px; } h1 { font-size:35px; } header { padding:20px; } main { padding:25px 20px 60px; } .topbar { align-items:start; flex-direction:column; margin-bottom:28px; } .nav { width:100%; justify-content:space-between; } .panel { padding:20px; } }
+    </style>
+</head>
+<body>
+    <section id="auth" class="auth-shell">
+        <div class="auth-box">
+            <div class="eyebrow">Survey App</div>
+            <h1 id="authTitle">Welcome to Survey App.</h1>
+            <p class="subtle">Sign in to manage your account and complete surveys.</p>
+            <form id="authForm" class="form">
+                <div id="usernameField"><label>Username<input id="username" autocomplete="username"></label></div>
+                <label>Email<input id="email" type="email" required autocomplete="email"></label>
+                <label>Password<input id="password" type="password" required autocomplete="current-password"></label>
+                <button class="primary" id="authSubmit">Create account</button>
+            </form>
+            <div class="social-row">
+                <a class="provider-button" href="/api/auth/google">Continue with Google</a>
+            </div>
+            <div id="authMessage" class="message"></div>
+            <div class="switch"><span id="switchText">Already have an account?</span> <button type="button" id="switchMode">Sign in</button></div>
+        </div>
+    </section>
+    <div id="app" class="app">
+        <header><div class="brand">Survey App</div><nav class="nav"><button class="active" data-view="surveys">Surveys</button><button data-view="profile">My profile</button><button id="logout">Sign out</button></nav></header>
+        <main><div id="content"></div></main>
+    </div>
+    <script>
+        const state = { mode:'signup', token:localStorage.getItem('surveyToken'), view:'surveys' };
+        const $ = (id) => document.getElementById(id);
+        const api = async (path, options = {}) => { const response = await fetch(path, { ...options, headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${state.token || ''}`, ...(options.headers || {}) } }); const data = await response.json(); if (!response.ok) throw new Error(data.message || 'Something went wrong.'); return data; };
+        const showAuth = () => { $('auth').style.display='grid'; $('app').classList.remove('visible'); };
+        const showApp = () => { $('auth').style.display='none'; $('app').classList.add('visible'); render(); };
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlToken = urlParams.get('token');
+        const urlMfaChallenge = urlParams.get('mfa_challenge');
+        const urlMfaEmail = urlParams.get('email') || '';
+        if (urlToken) { state.token = urlToken; localStorage.setItem('surveyToken', urlToken); history.replaceState(null, '', '/'); showApp(); }
+        function setMode(mode) { state.mode=mode; const signup=mode==='signup'; $('authTitle').textContent=signup?'Make your voice count.':'Welcome back.'; $('usernameField').style.display=signup?'block':'none'; $('authSubmit').textContent=signup?'Create account':'Sign in'; $('switchText').textContent=signup?'Already have an account?':'New here?'; $('switchMode').textContent=signup?'Sign in':'Create an account'; $('switchMode').style.display='inline'; $('password').autocomplete=signup?'new-password':'current-password'; $('authMessage').textContent=''; }
+        $('switchMode').onclick=()=>setMode(state.mode==='signup'?'login':'signup');
+        function showOtpForm(challengeId,email,code,method){ const authenticatorLogin=method==='authenticator'; $('authForm').innerHTML=`<label>${authenticatorLogin?'Authenticator code':'Email verification code'}<input id="otpCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required></label><button class="primary">Verify sign-in</button>`; $('authTitle').textContent=authenticatorLogin?'Enter your authenticator code.':'Check your email.'; const useCodeText = authenticatorLogin ? 'Enter the current six-digit code from your authenticator app.' : (code ? `Use this code: <strong>${code}</strong>.` : `We sent a six-digit code to ${email}.`); $('authMessage').innerHTML = useCodeText; $('switchText').textContent=''; $('switchMode').style.display='none'; $('authForm').onsubmit=async(event)=>{event.preventDefault();$('authMessage').textContent='';try{const response=await fetch('/api/auth/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({challengeId,code:$('otpCode').value})});const data=await response.json();if(!response.ok)throw new Error(data.message);state.token=data.token;localStorage.setItem('surveyToken',data.token);showApp();}catch(error){$('authMessage').textContent=error.message;}}; $('otpCode').focus(); }
+        $('authForm').onsubmit=async (event)=>{ event.preventDefault(); $('authMessage').textContent=''; const body={email:$('email').value,password:$('password').value}; if(state.mode==='signup') body.username=$('username').value; try { const data=await fetch(`/api/auth/${state.mode==='signup'?'register':'login'}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.message);return d;}); if(data.requiresOtp)return showOtpForm(data.challengeId,data.email,data.code,data.method); state.token=data.token; localStorage.setItem('surveyToken',data.token); showApp(); } catch(error) { $('authMessage').textContent=error.message; } };
+        $('logout').onclick=()=>{ state.token=null; localStorage.removeItem('surveyToken'); showAuth(); setMode('login'); };
+        document.querySelectorAll('[data-view]').forEach((button)=>button.onclick=()=>{ state.view=button.dataset.view; document.querySelectorAll('[data-view]').forEach((item)=>item.classList.toggle('active',item===button)); render(); });
+        async function render() { try { if(state.view==='profile') return renderProfile(); const surveys=await api('/api/surveys'); $('content').innerHTML=`<div class="topbar"><div><div class="eyebrow">Your dashboard</div><h2>Choose a survey.</h2><p class="subtle">A few considered questions can make a real difference.</p></div></div><div class="survey-grid">${surveys.map(s=>`<article class="survey-card"><div><div class="tag">${s.questions.length} questions</div><h3>${s.title}</h3><p class="subtle">${s.description||''}</p></div>${s.completed?'<div class="completed">Completed</div>':`<button class="primary" onclick="openSurvey(${s.id})">Take survey</button>`}</article>`).join('')}</div>`; } catch(error) { if(error.message.includes('session')) { $('logout').click(); } else $('content').innerHTML=`<p class="message">${error.message}</p>`; } }
+        window.openSurvey=async(id)=>{ const survey=await api(`/api/surveys/${id}`); $('content').innerHTML=`<div class="topbar"><div><button class="ghost" onclick="render()">&larr; All surveys</button><h2>${survey.title}</h2><p class="subtle">${survey.description||''}</p></div></div><form class="panel form" id="surveyForm">${survey.questions.map((q,i)=>`<div class="question"><label>${i+1}. ${q.text}<textarea name="${q.id||i}" rows="3" required></textarea></label></div>`).join('')}<button class="primary">Submit response</button><div class="message" id="surveyMessage"></div></form>`; $('surveyForm').onsubmit=async(e)=>{e.preventDefault();const message=$('surveyMessage');message.textContent='Saving your response...';try{await api(`/api/surveys/${id}/responses`,{method:'POST',body:JSON.stringify({answers:Object.fromEntries(new FormData(e.currentTarget))})});state.view='profile';document.querySelectorAll('[data-view]').forEach((item)=>item.classList.toggle('active',item.dataset.view==='profile'));await render();}catch(error){message.textContent=error.message;}}; };
+        async function renderProfile(){ const [data,mfa]=await Promise.all([api('/api/surveys/profile'),api('/api/auth/mfa/status')]); $('content').innerHTML=`<div class="topbar"><div><div class="eyebrow">Account</div><h2>${data.user.username}</h2><p class="subtle">${data.user.email}</p></div></div><section class="panel"><h3>Authenticator app</h3><p class="subtle">${mfa.enabled?'Authenticator sign-in is enabled.':'Add a rotating authenticator code to sign-in.'}</p>${mfa.enabled?'<strong>Enabled</strong>':'<button class="primary" id="setupMfa">Set up authenticator</button><div id="mfaSetup"></div>'}</section><section class="panel" style="margin-top:18px"><h3>Survey history</h3>${data.responses.length?data.responses.map(item=>`<div class="history"><strong>${item.title}</strong><span class="subtle">Submitted ${new Date(item.submitted_at).toLocaleDateString()}</span>${Object.entries(item.answers||{}).map(([question,answer])=>`<p><strong>${question}</strong><br>${answer}</p>`).join('')}</div>`).join(''):'<p class="subtle">Your completed surveys will appear here.</p>'}</section>`; if(!mfa.enabled) $('setupMfa').onclick=beginMfaSetup; }
+        async function beginMfaSetup(){ try{const setup=await api('/api/auth/mfa/setup',{method:'POST'}); $('mfaSetup').innerHTML=`<p class="subtle">Scan this QR code with your authenticator app, or enter the setup key manually.</p><img src="${setup.qrDataUrl}" alt="Authenticator setup QR code" width="200" height="200"><p><strong>Setup key:</strong> <code>${setup.secret}</code></p><form id="verifyMfaForm" class="form"><label>Six-digit code<input id="mfaCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required></label><button class="primary">Enable authenticator</button></form><div class="message" id="mfaMessage"></div>`; $('verifyMfaForm').onsubmit=async(event)=>{event.preventDefault();try{await api('/api/auth/mfa/verify',{method:'POST',body:JSON.stringify({code:$('mfaCode').value})});await renderProfile();}catch(error){$('mfaMessage').textContent=error.message;}};}catch(error){$('mfaSetup').textContent=error.message;} }
+        if(urlMfaChallenge){history.replaceState(null,'','/');showAuth();setMode('login');showOtpForm(urlMfaChallenge,urlMfaEmail,null,'authenticator');}else if(state.token) showApp(); else showAuth();
+    </script>
+</body>
+</html>
