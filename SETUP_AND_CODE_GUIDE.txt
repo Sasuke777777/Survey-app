@@ -116,3 +116,11 @@ RUNNING
 Run `node server.js`, then open http://localhost:4000. Make sure MySQL is running and
 the survey_application database exists. Replace the sample JWT_SECRET with a long random
 value before using the app outside local development.
+
+GITHUB PAGES
+------------
+The GitHub Actions workflow publishes the static frontend in public/ when changes are
+pushed to main. In the repository's Pages settings, select GitHub Actions as the source.
+GitHub Pages does not run the Express server or connect to MySQL, so sign-in, surveys,
+and other API features remain unavailable until a separate backend is deployed and the
+frontend is configured to use it.
