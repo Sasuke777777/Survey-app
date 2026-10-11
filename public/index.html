@@ -31,7 +31,7 @@
             <div class="eyebrow">Survey App</div>
             <h1 id="authTitle">Welcome to Survey App.</h1>
             <p class="subtle">Sign in to manage your account and complete surveys.</p>
-            <p class="subtle" role="status">Static preview: sign-in and survey actions need the separate backend.</p>
+            <p class="subtle" id="backendNotice" role="status">Static preview: sign-in and survey actions need the separate backend.</p>
             <form id="authForm" class="form">
                 <div id="usernameField"><label>Username<input id="username" autocomplete="username"></label></div>
                 <label>Email<input id="email" type="email" required autocomplete="email"></label>
@@ -39,7 +39,7 @@
                 <button class="primary" id="authSubmit">Create account</button>
             </form>
             <div class="social-row">
-                <a class="provider-button" href="/api/auth/google">Continue with Google</a>
+                <a class="provider-button" id="googleLogin" href="/api/auth/google">Continue with Google</a>
             </div>
             <div id="authMessage" class="message"></div>
             <div class="switch"><span id="switchText">Already have an account?</span> <button type="button" id="switchMode">Sign in</button></div>
@@ -49,9 +49,27 @@
         <header><div class="brand">Survey App</div><nav class="nav"><button class="active" data-view="surveys">Surveys</button><button data-view="profile">My profile</button><button id="logout">Sign out</button></nav></header>
         <main><div id="content"></div></main>
     </div>
+    <script src="config.js"></script>
     <script>
         const state = { mode:'signup', token:localStorage.getItem('surveyToken'), view:'surveys' };
         const $ = (id) => document.getElementById(id);
+        const apiBaseUrl = (window.SURVEY_API_URL || '').replace(/\/+$/, '');
+        const originalFetch = window.fetch.bind(window);
+        window.fetch = (input, options) => {
+            if (typeof input === 'string' && input.startsWith('/api/')) {
+                if (!apiBaseUrl && window.location.hostname.endsWith('.github.io')) {
+                    return Promise.reject(new Error('Backend URL is not configured. Set SURVEY_API_URL in public/config.js.'));
+                }
+                return originalFetch(`${apiBaseUrl}${input}`, options);
+            }
+            return originalFetch(input, options);
+        };
+        $('backendNotice').hidden = Boolean(apiBaseUrl) || !window.location.hostname.endsWith('.github.io');
+        if (apiBaseUrl) $('googleLogin').href = `${apiBaseUrl}/api/auth/google`;
+        else if (window.location.hostname.endsWith('.github.io')) {
+            $('googleLogin').href = '#';
+            $('googleLogin').onclick = (event) => event.preventDefault();
+        }
         const api = async (path, options = {}) => { const response = await fetch(path, { ...options, headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${state.token || ''}`, ...(options.headers || {}) } }); const data = await response.json(); if (!response.ok) throw new Error(data.message || 'Something went wrong.'); return data; };
         const showAuth = () => { $('auth').style.display='grid'; $('app').classList.remove('visible'); };
         const showApp = () => { $('auth').style.display='none'; $('app').classList.add('visible'); render(); };
@@ -59,7 +77,7 @@
         const urlToken = urlParams.get('token');
         const urlMfaChallenge = urlParams.get('mfa_challenge');
         const urlMfaEmail = urlParams.get('email') || '';
-        if (urlToken) { state.token = urlToken; localStorage.setItem('surveyToken', urlToken); history.replaceState(null, '', '/'); showApp(); }
+        if (urlToken) { state.token = urlToken; localStorage.setItem('surveyToken', urlToken); history.replaceState(null, '', window.location.pathname); showApp(); }
         function setMode(mode) { state.mode=mode; const signup=mode==='signup'; $('authTitle').textContent=signup?'Make your voice count.':'Welcome back.'; $('usernameField').style.display=signup?'block':'none'; $('authSubmit').textContent=signup?'Create account':'Sign in'; $('switchText').textContent=signup?'Already have an account?':'New here?'; $('switchMode').textContent=signup?'Sign in':'Create an account'; $('switchMode').style.display='inline'; $('password').autocomplete=signup?'new-password':'current-password'; $('authMessage').textContent=''; }
         $('switchMode').onclick=()=>setMode(state.mode==='signup'?'login':'signup');
         function showOtpForm(challengeId,email,code,method){ const authenticatorLogin=method==='authenticator'; $('authForm').innerHTML=`<label>${authenticatorLogin?'Authenticator code':'Email verification code'}<input id="otpCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required></label><button class="primary">Verify sign-in</button>`; $('authTitle').textContent=authenticatorLogin?'Enter your authenticator code.':'Check your email.'; const useCodeText = authenticatorLogin ? 'Enter the current six-digit code from your authenticator app.' : (code ? `Use this code: <strong>${code}</strong>.` : `We sent a six-digit code to ${email}.`); $('authMessage').innerHTML = useCodeText; $('switchText').textContent=''; $('switchMode').style.display='none'; $('authForm').onsubmit=async(event)=>{event.preventDefault();$('authMessage').textContent='';try{const response=await fetch('/api/auth/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({challengeId,code:$('otpCode').value})});const data=await response.json();if(!response.ok)throw new Error(data.message);state.token=data.token;localStorage.setItem('surveyToken',data.token);showApp();}catch(error){$('authMessage').textContent=error.message;}}; $('otpCode').focus(); }

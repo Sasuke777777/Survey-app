@@ -8,13 +8,25 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 require('dotenv').config();
 
 if (process.env.NODE_ENV === 'production') {
-    const missingConfig = ['DB_HOST', 'DB_USER', 'DB_NAME'].filter((key) => !process.env[key]);
+    const missingConfig = ['DB_HOST', 'DB_USER', 'DB_NAME', 'FRONTEND_URL'].filter((key) => !process.env[key]);
     if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) missingConfig.push('JWT_SECRET (at least 32 characters)');
     if (missingConfig.length) throw new Error(`Missing production configuration: ${missingConfig.join(', ')}`);
 }
 
 const app = express();
 app.use(express.json());
+const frontendOrigin = new URL(process.env.FRONTEND_URL || 'http://localhost:4000').origin;
+app.use((req, res, next) => {
+    const origin = req.get('Origin');
+    if (origin === frontendOrigin) {
+        res.setHeader('Access-Control-Allow-Origin', frontendOrigin);
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        res.setHeader('Vary', 'Origin');
+    }
+    if (req.method === 'OPTIONS') return res.sendStatus(origin === frontendOrigin ? 204 : 403);
+    return next();
+});
 app.use(session({ secret: process.env.JWT_SECRET || 'change_this_secret', resave: false, saveUninitialized: false }));
 app.use(passport.initialize());
 app.use(passport.session());
@@ -51,7 +63,9 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     passport.use(new GoogleStrategy({
         clientID: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        callbackURL: '/api/auth/google/callback'
+        callbackURL: process.env.APP_URL
+            ? new URL('/api/auth/google/callback', process.env.APP_URL).toString()
+            : '/api/auth/google/callback'
     }, async (accessToken, refreshToken, profile, done) => {
         try {
             const email = profile.emails && profile.emails[0] ? profile.emails[0].value : null;

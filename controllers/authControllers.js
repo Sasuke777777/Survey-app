@@ -143,18 +143,26 @@ exports.verifyLoginOtp = async (req, res) => {
 
 exports.googleLogin = passport.authenticate('google', { scope: ['profile', 'email'], session: false });
 
+const redirectToFrontend = (res, params) => {
+    const frontendUrl = process.env.FRONTEND_URL;
+    if (!frontendUrl) return res.redirect(`/?${new URLSearchParams(params)}`);
+    const destination = new URL(frontendUrl);
+    for (const [key, value] of Object.entries(params)) destination.searchParams.set(key, value);
+    return res.redirect(destination.toString());
+};
+
 exports.googleCallback = [
-    passport.authenticate('google', { failureRedirect: '/login', session: false }),
+    passport.authenticate('google', { failureRedirect: process.env.FRONTEND_URL || '/login', session: false }),
     async (req, res) => {
         const user = req.user;
         if (!user || !user.id) return res.status(401).json({ message: 'Unable to sign in with Google.' });
         const [mfaRows] = await db.promise().query('SELECT enabled FROM user_mfa WHERE user_id = ?', [user.id]);
         if (mfaRows[0] && mfaRows[0].enabled) {
             const challengeId = createMfaChallenge(user.id);
-            return res.redirect(`/?mfa_challenge=${encodeURIComponent(challengeId)}&email=${encodeURIComponent(user.email || '')}`);
+            return redirectToFrontend(res, { mfa_challenge: challengeId, email: user.email || '' });
         }
         const token = createToken(user);
-        return res.redirect(`/?token=${encodeURIComponent(token)}`);
+        return redirectToFrontend(res, { token });
     }
 ];
 
